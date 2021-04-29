@@ -70,6 +70,22 @@ class ViewController: UIViewController {
         tableView.separatorStyle = .none
     }
     
+    private func fetchFriends() {
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
+            return
+        }
+        
+        let managedContext = appDelegate.persistentContainer.viewContext
+        
+        let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "Person")
+        
+        do {
+            friends = try managedContext.fetch(fetchRequest)
+        } catch {
+            print("Could not fetch. \(error), \(error.localizedDescription)")
+        }
+    }
+    
     @objc private func addFriend() {
         let alert = UIAlertController(title: "Add Friend", message: "Add the name of your friend, then save it to the list!", preferredStyle: .alert)
         
@@ -87,23 +103,6 @@ class ViewController: UIViewController {
         
         alert.addTextField()
         alert.addAction(saveAction)
-        alert.addAction(cancelAction)
-        
-        present(alert, animated: true, completion: nil)
-    }
-    
-    private func alertDeleteFriend(_ index: IndexPath) {
-        let alert = UIAlertController(title: "Delete Friend", message: "Delete the name of your friend permanently?", preferredStyle: .alert)
-        
-        let okAction = UIAlertAction(title: "Ok", style: .default) { [weak self] _ in
-            guard let self = self else { return }
-            
-            self.deleteFriend(index)
-        }
-        
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
-        
-        alert.addAction(okAction)
         alert.addAction(cancelAction)
         
         present(alert, animated: true, completion: nil)
@@ -130,20 +129,60 @@ class ViewController: UIViewController {
         }
     }
     
-    private func fetchFriends() {
+    private func alertUpdateFriend(_ index: IndexPath) {
+        let alert = UIAlertController(title: "Update Friend", message: "Update the name of your friend permanently?", preferredStyle: .alert)
+        
+        let okAction = UIAlertAction(title: "Save", style: .default) { [weak self] _ in
+            guard let self = self else { return }
+            
+            guard let textField = alert.textFields?.first,
+                  let name = textField.text else { return }
+            self.updateFriend(index, to: name)
+            self.tableView.reloadData()
+        }
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
+        
+        alert.addTextField()
+        alert.addAction(okAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true, completion: nil)
+    }
+    
+    private func updateFriend(_ index: IndexPath, to name: String) {
         guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
             return
         }
         
         let managedContext = appDelegate.persistentContainer.viewContext
         
-        let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "Person")
+        let data = self.friends[index.row]
+        data.setValue(name, forKey: "name")
         
         do {
-            friends = try managedContext.fetch(fetchRequest)
+            _ = try managedContext.save()
         } catch {
-            print("Could not fetch. \(error), \(error.localizedDescription)")
+            print("Could not delete. \(error), \(error.localizedDescription)")
         }
+    }
+    
+    private func alertDeleteFriend(_ index: IndexPath) {
+        let alert = UIAlertController(title: "Delete Friend", message: "Delete the name of your friend permanently?", preferredStyle: .alert)
+        
+        let okAction = UIAlertAction(title: "Ok", style: .default) { [weak self] _ in
+            guard let self = self else { return }
+            
+            self.deleteFriend(index)
+            self.tableView.reloadData()
+        }
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
+        
+        alert.addAction(okAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true, completion: nil)
     }
     
     private func deleteFriend(_ index: IndexPath) {
@@ -160,7 +199,6 @@ class ViewController: UIViewController {
         do {
             _ = try managedContext.save()
             friends.remove(at: index.row)
-            tableView.reloadData()
         } catch {
             print("Could not delete. \(error), \(error.localizedDescription)")
         }
@@ -186,7 +224,11 @@ extension ViewController: UITableViewDataSource {
 extension ViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         self.tableView.deselectRow(at: indexPath, animated: true)
-        alertDeleteFriend(indexPath)
+        // uncomment if you want to update func
+        alertUpdateFriend(indexPath)
+        
+        // uncomment if you want to delete func
+        // alertDeleteFriend(indexPath)
     }
 }
 
