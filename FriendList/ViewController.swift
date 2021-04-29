@@ -92,6 +92,23 @@ class ViewController: UIViewController {
         present(alert, animated: true, completion: nil)
     }
     
+    private func alertDeleteFriend(_ index: IndexPath) {
+        let alert = UIAlertController(title: "Delete Friend", message: "Delete the name of your friend permanently?", preferredStyle: .alert)
+        
+        let okAction = UIAlertAction(title: "Ok", style: .default) { [weak self] _ in
+            guard let self = self else { return }
+            
+            self.deleteFriend(index)
+        }
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
+        
+        alert.addAction(okAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true, completion: nil)
+    }
+    
     private func saveFriend(name: String) {
         guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
             return
@@ -128,6 +145,26 @@ class ViewController: UIViewController {
             print("Could not fetch. \(error), \(error.localizedDescription)")
         }
     }
+    
+    private func deleteFriend(_ index: IndexPath) {
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
+            return
+        }
+        
+        let data = self.friends[index.row]
+        
+        let managedContext = appDelegate.persistentContainer.viewContext
+        
+        managedContext.delete(data)
+        
+        do {
+            _ = try managedContext.save()
+            friends.remove(at: index.row)
+            tableView.reloadData()
+        } catch {
+            print("Could not delete. \(error), \(error.localizedDescription)")
+        }
+    }
 
 }
 
@@ -149,6 +186,7 @@ extension ViewController: UITableViewDataSource {
 extension ViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         self.tableView.deselectRow(at: indexPath, animated: true)
+        alertDeleteFriend(indexPath)
     }
 }
 
