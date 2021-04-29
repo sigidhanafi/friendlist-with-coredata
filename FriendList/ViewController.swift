@@ -5,13 +5,14 @@
 //  Created by Sigit on 29/04/21.
 //
 
+import CoreData
 import UIKit
 
 class ViewController: UIViewController {
     
     private let tableView = UITableView()
     
-    private var friends = [String]()
+    private var friends = [NSManagedObject]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,6 +20,12 @@ class ViewController: UIViewController {
         setupNavigation()
         setupView()
         setupTableView()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        fetchFriends()
     }
     
     private func setupView() {
@@ -56,7 +63,11 @@ class ViewController: UIViewController {
     
     private func setupTableView() {
         tableView.dataSource = self
+        tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        
+        tableView.backgroundColor = .white
+        tableView.separatorStyle = .none
     }
     
     @objc private func addFriend() {
@@ -67,8 +78,8 @@ class ViewController: UIViewController {
             
             guard let textField = alert.textFields?.first,
                   let name = textField.text else { return }
-            
-            self.friends.append(name)
+    
+            self.saveFriend(name: name)
             self.tableView.reloadData()
         }
         
@@ -80,6 +91,43 @@ class ViewController: UIViewController {
         
         present(alert, animated: true, completion: nil)
     }
+    
+    private func saveFriend(name: String) {
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
+            return
+        }
+        
+        let managedContext = appDelegate.persistentContainer.viewContext
+        
+        let entity = NSEntityDescription.entity(forEntityName: "Person", in: managedContext)!
+        
+        let person = NSManagedObject(entity: entity, insertInto: managedContext)
+        
+        person.setValue(name, forKey: "name")
+        
+        do {
+            try managedContext.save()
+            friends.append(person)
+        } catch {
+            print("Could not save. \(error), \(error.localizedDescription)")
+        }
+    }
+    
+    private func fetchFriends() {
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
+            return
+        }
+        
+        let managedContext = appDelegate.persistentContainer.viewContext
+        
+        let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "Person")
+        
+        do {
+            friends = try managedContext.fetch(fetchRequest)
+        } catch {
+            print("Could not fetch. \(error), \(error.localizedDescription)")
+        }
+    }
 
 }
 
@@ -90,12 +138,18 @@ extension ViewController: UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.textLabel?.text = self.friends[indexPath.row]
+        let friend = self.friends[indexPath.row]
+        let name = friend.value(forKeyPath: "name")
+        cell.textLabel?.text = name as? String
         
         return cell
     }
-    
-    
+}
+
+extension ViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        self.tableView.deselectRow(at: indexPath, animated: true)
+    }
 }
 
 extension UIImage {
