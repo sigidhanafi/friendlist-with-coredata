@@ -79,6 +79,13 @@ class ViewController: UIViewController {
         
         let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "Person")
         
+        // fetch data with condition
+        // fetchRequest.predicate = NSPredicate(format: "name == %@", "Sigit Hanafi")
+        
+        // add sort when fetch request
+        let sortByName = NSSortDescriptor.init(key: "name", ascending: true)
+        fetchRequest.sortDescriptors = [sortByName] // insert in array if want to multiple sort
+        
         do {
             friends = try managedContext.fetch(fetchRequest)
         } catch {
@@ -123,7 +130,7 @@ class ViewController: UIViewController {
         
         do {
             try managedContext.save()
-            friends.append(person)
+            self.fetchFriends()
         } catch {
             print("Could not save. \(error), \(error.localizedDescription)")
         }
@@ -162,6 +169,7 @@ class ViewController: UIViewController {
         
         do {
             _ = try managedContext.save()
+            self.fetchFriends()
         } catch {
             print("Could not delete. \(error), \(error.localizedDescription)")
         }
@@ -198,7 +206,7 @@ class ViewController: UIViewController {
         
         do {
             _ = try managedContext.save()
-            friends.remove(at: index.row)
+            self.fetchFriends()
         } catch {
             print("Could not delete. \(error), \(error.localizedDescription)")
         }
@@ -228,7 +236,7 @@ extension ViewController: UITableViewDelegate {
         alertUpdateFriend(indexPath)
         
         // uncomment if you want to delete func
-        // alertDeleteFriend(indexPath)
+//         alertDeleteFriend(indexPath)
     }
 }
 
